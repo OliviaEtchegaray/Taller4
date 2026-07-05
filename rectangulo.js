@@ -1,316 +1,219 @@
 
 // 1
 
-
 function startBlue1(){
+    let trails = [];
+    let square = { x: mainCanvas.width / 2, y: mainCanvas.height / 2, size: 70 };
+    let pointer = { x: square.x, y: square.y };
+    let isCrashed = false; 
 
-    let trails=[];
+    // Lógica de fondos
+    const bgColors = ["rgba(200, 162, 200, 1)", "rgba(255, 235, 150, 1)", "rgba(255, 200, 150, 1)"]; 
+    let currentBg = -1;
 
-    let square={
+    function updatePointer(e) {
+        if(isCrashed) return; 
+        const rect = mainCanvas.getBoundingClientRect();
+        let clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        let clientY = e.touches ? e.touches[0].clientY : e.clientY;
 
-        x:mainCanvas.width/4,
-        y:mainCanvas.height/4,
-        size:70
+        pointer.x = (clientX - rect.left) * (mainCanvas.width / rect.width);
+        pointer.y = (clientY - rect.top) * (mainCanvas.height / rect.height);
+    }
 
-    };
+    mainCanvas.onmousemove = updatePointer;
+    mainCanvas.ontouchmove = (e) => { e.preventDefault(); updatePointer(e); };
+    mainCanvas.ontouchstart = (e) => { e.preventDefault(); updatePointer(e); };
 
-    let mouse={
+    function resetSystem() {
+        isCrashed = true;
+        currentBg = (currentBg + 1) % bgColors.length; 
 
-        x:square.x,
-        y:square.y
-
-    };
-
-    mainCanvas.onmousemove=function(e){
-
-        const rect=mainCanvas.getBoundingClientRect();
-
-        mouse.x=(e.clientX-rect.left)*(mainCanvas.width/rect.width);
-        mouse.y=(e.clientY-rect.top)*(mainCanvas.height/rect.height);
-
+        setTimeout(() => {
+            square.x = mainCanvas.width / 2;
+            square.y = mainCanvas.height / 2;
+            pointer.x = square.x;
+            pointer.y = square.y;
+            trails = [];
+            isCrashed = false;
+        }, 1500); 
     }
 
     function animate(){
-
-        animation=requestAnimationFrame(animate);
-
+        animation = requestAnimationFrame(animate);
         mainCtx.clearRect(0,0,mainCanvas.width,mainCanvas.height);
 
-        square.x+=(mouse.x-square.x)*0.12;
-        square.y+=(mouse.y-square.y)*0.12;
-
-        trails.push({
-
-            x:square.x,
-            y:square.y,
-
-            alpha:1,
-
-            size:square.size
-
-        });
-
-        trails.forEach(t=>{
-
-            mainCtx.fillStyle=`rgba(9,0,255,${t.alpha})`;
-
-            mainCtx.fillRect(
-
-                t.x-t.size/2,
-                t.y-t.size/2,
-
-                t.size,
-                t.size
-
-            );
-
-            t.alpha-=0.012;
-
-        });
-
-        trails=trails.filter(t=>t.alpha>0);
-
-        mainCtx.fillStyle="#0900FF";
-
-        mainCtx.fillRect(
-
-            square.x-square.size/2,
-            square.y-square.size/2,
-
-            square.size,
-            square.size
-
-        );
-
-    }
-
-    animate();
-
-}
-
-
-// =======================================================
-// BLUE 2
-// GENERAR CUADRADOS
-// =======================================================
-
-function startBlue2(){
-
-    let square={
-
-        x:mainCanvas.width/2,
-        y:mainCanvas.height/2,
-
-        size:80,
-
-        scale:1
-
-    };
-
-    let minis=[];
-
-    let pulse=0;
-
-    mainCanvas.onclick=function(e){
-
-        const rect=mainCanvas.getBoundingClientRect();
-
-        const x=(e.clientX-rect.left)*(mainCanvas.width/rect.width);
-        const y=(e.clientY-rect.top)*(mainCanvas.height/rect.height);
-
-        minis.push({
-
-            x:x,
-            y:y,
-
-            size:12+Math.random()*22,
-
-            angle:Math.random()*Math.PI*2,
-
-            alpha:1
-
-        });
-
-    }
-
-    function animate(){
-
-        animation=requestAnimationFrame(animate);
-
-        mainCtx.clearRect(0,0,mainCanvas.width,mainCanvas.height);
-
-        pulse+=0.22;
-
-        square.scale=1+Math.sin(pulse*2)*0.08;
-
-        minis.forEach(m=>{
-
-            mainCtx.save();
-
-            mainCtx.translate(m.x,m.y);
-
-            mainCtx.rotate(m.angle);
-
-            mainCtx.fillStyle=`rgba(9,0,255,${m.alpha})`;
-
-            mainCtx.fillRect(
-
-                -m.size/2,
-                -m.size/2,
-
-                m.size,
-                m.size
-
-            );
-
-            mainCtx.restore();
-
-            m.alpha-=0.003;
-
-        });
-
-        minis=minis.filter(m=>m.alpha>0);
-
-        mainCtx.save();
-
-        mainCtx.translate(square.x,square.y);
-
-        mainCtx.scale(square.scale,square.scale);
-
-        mainCtx.fillStyle="#0900FF";
-
-        mainCtx.fillRect(
-
-            -square.size/2,
-            -square.size/2,
-
-            square.size,
-            square.size
-
-        );
-
-        mainCtx.restore();
-
-    }
-
-    animate();
-
-}
-
-
-// =======================================================
-// BLUE 3
-// SALVAR CUADRADOS
-// =======================================================
-
-function startBlue3(){
-
-    let squares=[];
-    let holding=false;
-
-    while(squares.length<30){
-
-        squares.push({
-
-            x:Math.random()*mainCanvas.width,
-            y:Math.random()*mainCanvas.height,
-
-            size:20+Math.random()*45,
-
-            alpha:1,
-
-            fading:true
-
-        });
-
-    }
-
-    mainCanvas.onmousedown=()=>holding=true;
-    mainCanvas.onmouseup=()=>holding=false;
-    mainCanvas.onmouseleave=()=>holding=false;
-
-    mainCanvas.onmousemove=function(e){
-
-        if(!holding) return;
-
-        const rect=mainCanvas.getBoundingClientRect();
-
-        const mx=(e.clientX-rect.left)*(mainCanvas.width/rect.width);
-        const my=(e.clientY-rect.top)*(mainCanvas.height/rect.height);
-
-        squares.forEach(s=>{
-
-            if(
-
-                mx>s.x-s.size/2 &&
-                mx<s.x+s.size/2 &&
-                my>s.y-s.size/2 &&
-                my<s.y+s.size/2
-
-            ){
-
-                s.alpha=1;
-                s.fading=false;
-
-            }
-
-        });
-
-    }
-
-    function animate(){
-
-        animation=requestAnimationFrame(animate);
-
-        mainCtx.clearRect(0,0,mainCanvas.width,mainCanvas.height);
-
-        if(Math.random()<0.03){
-
-            squares.push({
-
-                x:Math.random()*mainCanvas.width,
-                y:Math.random()*mainCanvas.height,
-
-                size:20+Math.random()*45,
-
-                alpha:1,
-
-                fading:true
-
-            });
-
+    
+        if(currentBg !== -1) {
+            drawRadialBackground(mainCtx, mainCanvas, bgColors[currentBg]);
         }
 
-        squares.forEach(s=>{
+        if(!isCrashed) {
+            square.x += (pointer.x - square.x) * 0.12;
+            square.y += (pointer.y - square.y) * 0.12;
 
-            if(s.fading){
-
-                s.alpha-=0.003;
-
-            }else{
-
-                s.alpha-=0.0008;
-
+            for (let i = 0; i < trails.length - 15; i++) {
+                let t = trails[i];
+                let dx = square.x - t.x;
+                let dy = square.y - t.y;
+                if (Math.sqrt(dx*dx + dy*dy) < square.size * 0.4 && t.alpha > 0.15) {
+                    resetSystem();
+                    break;
+                }
             }
+            trails.push({ x: square.x, y: square.y, alpha: 1, size: square.size });
+        }
 
-            mainCtx.fillStyle=`rgba(9,0,255,${Math.max(s.alpha,0)})`;
-
-            mainCtx.fillRect(
-
-                s.x-s.size/2,
-                s.y-s.size/2,
-
-                s.size,
-                s.size
-
-            );
-
+        trails.forEach(t => {
+            drawGradientSquare(mainCtx, t.x, t.y, t.size, t.alpha);
+            t.alpha -= 0.012;
         });
+        trails = trails.filter(t => t.alpha > 0);
+        drawGradientSquare(mainCtx, square.x, square.y, square.size, 1);
+    }
+    animate();
+}
 
-        squares=squares.filter(s=>s.alpha>0);
 
+
+// 2
+function startBlue2(){
+    let square = { x: mainCanvas.width/2, y: mainCanvas.height/2, size: 80, scale: 1 };
+    let minis = [];
+    let pulse = 0;
+    let hasTouched = false; 
+
+    function spawnMinis() {
+        for(let i=0; i<4; i++) {
+            minis.push({
+                x: square.x, y: square.y,
+                size: 15 + Math.random() * 20,
+                vx: (Math.random() - 0.5) * 12, 
+                vy: (Math.random() - 0.5) * 12, 
+                alpha: 1
+            });
+        }
     }
 
-    animate();
+    function handleInteraction(e) {
+        hasTouched = true; 
+        square.scale = 1;  
 
+        const rect = mainCanvas.getBoundingClientRect();
+        let clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        let clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        
+        let tx = (clientX - rect.left) * (mainCanvas.width / rect.width);
+        let ty = (clientY - rect.top) * (mainCanvas.height / rect.height);
+
+      
+        if (Math.abs(tx - square.x) < square.size && Math.abs(ty - square.y) < square.size) {
+            spawnMinis();
+        }
+    }
+
+    mainCanvas.onmousedown = handleInteraction;
+    mainCanvas.ontouchstart = (e) => { e.preventDefault(); handleInteraction(e); };
+
+    function animate(){
+        animation = requestAnimationFrame(animate);
+        mainCtx.clearRect(0,0,mainCanvas.width,mainCanvas.height);
+
+        if (!hasTouched) {
+            pulse += 0.05;
+            square.scale = 1 + Math.sin(pulse) * 0.15;
+        }
+
+     
+        minis.forEach(m => {
+            m.x += m.vx;
+            m.y += m.vy;
+
+            if (m.x - m.size/2 < 0 || m.x + m.size/2 > mainCanvas.width) m.vx *= -1;
+            if (m.y - m.size/2 < 0 || m.y + m.size/2 > mainCanvas.height) m.vy *= -1;
+
+            drawGradientSquare(mainCtx, m.x, m.y, m.size, m.alpha);
+            m.alpha -= 0.005; 
+        });
+        
+        minis = minis.filter(m => m.alpha > 0);
+
+    
+        let currentSize = square.size * square.scale;
+        drawGradientSquare(mainCtx, square.x, square.y, currentSize, 1);
+    }
+    animate();
+}
+
+
+//  3
+
+function startBlue3(){
+    let trails = [];
+    let square = resetSquare();
+    let isDragging = false;
+
+    function resetSquare() {
+        return { x: mainCanvas.width / 2, y: mainCanvas.height / 2, size: 70, alpha: 1 };
+    }
+
+    function startDrag(e) {
+        const rect = mainCanvas.getBoundingClientRect();
+        let cx = e.touches ? e.touches[0].clientX : e.clientX;
+        let cy = e.touches ? e.touches[0].clientY : e.clientY;
+        let x = (cx - rect.left) * (mainCanvas.width / rect.width);
+        let y = (cy - rect.top) * (mainCanvas.height / rect.height);
+
+        if (Math.abs(x - square.x) < square.size && Math.abs(y - square.y) < square.size) {
+            isDragging = true;
+        }
+    }
+
+    function dragMove(e) { // OK ACA ES CO LO ARRASTRA CON CELUALR 
+        if (!isDragging || square.alpha <= 0) return;
+        const rect = mainCanvas.getBoundingClientRect();
+        let cx = e.touches ? e.touches[0].clientX : e.clientX;
+        let cy = e.touches ? e.touches[0].clientY : e.clientY;
+        
+        square.x = (cx - rect.left) * (mainCanvas.width / rect.width);
+        square.y = (cy - rect.top) * (mainCanvas.height / rect.height);
+
+   
+        trails.push({ x: square.x, y: square.y, size: square.size, alpha: square.alpha });
+        square.alpha -= 0.006; 
+    }
+
+    function endDrag() { isDragging = false; }
+
+    mainCanvas.onmousedown = startDrag;
+    mainCanvas.onmousemove = dragMove;
+    mainCanvas.onmouseup = endDrag;
+    mainCanvas.onmouseleave = endDrag;
+
+    mainCanvas.ontouchstart = (e) => { e.preventDefault(); startDrag(e); };
+    mainCanvas.ontouchmove = (e) => { e.preventDefault(); dragMove(e); };
+    mainCanvas.ontouchend = endDrag;
+
+    function animate(){
+        animation = requestAnimationFrame(animate);
+        mainCtx.clearRect(0,0,mainCanvas.width,mainCanvas.height);
+
+        // Reinicio si desapareció el cuadrado y la estela
+        if (square.alpha <= 0 && trails.length === 0) {
+            square = resetSquare();
+        }
+
+        // Estela
+        trails.forEach(t => {
+            drawGradientSquare(mainCtx, t.x, t.y, t.size, t.alpha);
+            t.alpha -= 0.015;
+        });
+        trails = trails.filter(t => t.alpha > 0);
+
+    
+        if (square.alpha > 0) {
+            drawGradientSquare(mainCtx, square.x, square.y, square.size, Math.max(0, square.alpha));
+        }
+    }
+    animate();
 }
