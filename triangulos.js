@@ -1,127 +1,103 @@
 
-function startTriangulo1() { }
+// 1
 
+function startTriangulo1() {
+    let cx = mainCanvas.width / 2 + 20;
+    let cy = mainCanvas.height / 2;
+    let opacity = 0.2;
+
+    function handleMotion(event) {
+        let acc = event.accelerationIncludingGravity;
+        if (!acc) return;
+        
+        let force = Math.abs(acc.x) + Math.abs(acc.y) + Math.abs(acc.z);
+        if (force > 18) { // Sacudida fuerte detectada
+            opacity += 0.1;
+            if (opacity >= 1) {
+                // Loop de bajada
+                setTimeout(() => opacity = 0.2, 600);
+            }
+        }
+    }
+
+    window.addEventListener('devicemotion', handleMotion, true);
+
+    // Limpieza especial para sensores
+    let oldStop = stopCurrentAnimation;
+    stopCurrentAnimation = function() {
+        window.removeEventListener('devicemotion', handleMotion, true);
+        oldStop();
+    };
+
+    function animate() {
+        animation = requestAnimationFrame(animate);
+        mainCtx.clearRect(0, 0, mainCanvas.width, mainCanvas.height);
+        
+        // La opacidad va bajando lentamente si no sacuden
+        if(opacity > 0.2) opacity -= 0.005;
+
+        drawGradientTriangle(mainCtx, cx, cy, 70, 255, 0, 0, opacity);
+    }
+    animate();
+}
+
+
+//  2
 
 function startTriangulo2() {
-    let gravityX = 0;
-    let gravityY = 0;
-    let gameTime = 0;
-    let gameOverTimeout = null;
+    let cx = mainCanvas.width / 2 + 20;
+    let cy = mainCanvas.height / 2;
     
-    // Contador de tiempo que el usuario logra mantener el celular recto
-    let quietTimer = 0; 
-    const TIME_TO_SURVIVE = 360; // 360 frames equivalen a unos 6 segundos a 60fps
+    let triX = cx;
+    let triY = cy;
+    let sensitivity = 1;
+    let fails = 0;
+    let bgColors = ["#ffffff", "#ffe6e6", "#ffcccc", "#ff9999"];
 
-    // Creamos MAS triángulos y MAS GRANDES (ej. 8 triángulos de tamaño 100)
-    let pieces = [];
-    const totalPieces = 8;
+    // Aumenta la dificultad (sensibilidad) cada 10 segundos
+    let difficultyInterval = setInterval(() => sensitivity += 0.8, 10000);
 
-    for (let i = 0; i < totalPieces; i++) {
-        pieces.push({
-            // Posiciones iniciales esparcidas
-            x: mainCanvas.width * 0.1 + Math.random() * (mainCanvas.width * 0.8),
-            y: mainCanvas.height * 0.1 + Math.random() * (mainCanvas.height * 0.8),
-            vx: 0,
-            vy: 0,
-            size: 100, // <-- ¡Más grandes! (Antes eran de 58)
-            angle: Math.random() * Math.PI * 2, // Orientaciones variadas
-            baseAngle: Math.random() * Math.PI * 2
-        });
-    }
-
-    // --- DETECTAR BALANCEO EXAGERADO ---
     function handleOrientation(event) {
-        let tolerance = 0.5; // Margen estricto de pulso recto
-        let rawX = event.gamma || 0;
-        let rawY = event.beta || 0;
+        let beta = event.beta;  // Inclinación Adelante/Atrás
+        let gamma = event.gamma; // Inclinación Izquierda/Derecha
+        
+        if (beta === null || gamma === null) return;
 
-        // Si se pasa de la tolerancia, se multiplica el movimiento salvajemente
-        gravityX = Math.abs(rawX) > tolerance ? rawX * 4.5 : 0;
-        gravityY = Math.abs(rawY) > tolerance ? rawY * 4.5 : 0;
-    }
-    
-    window.addEventListener('deviceorientation', handleOrientation);
+        triX += gamma * sensitivity * 0.15;
+        triY += beta * sensitivity * 0.15;
 
-    function drawTriangle(ctx, x, y, size, angle, color) {
-        ctx.save();
-        ctx.translate(x, y);
-        ctx.rotate(angle);
-        ctx.beginPath();
-        ctx.moveTo(0, -size / Math.sqrt(3));
-        ctx.lineTo(-size / 2, size / (2 * Math.sqrt(3)));
-        ctx.lineTo(size / 2, size / (2 * Math.sqrt(3)));
-        ctx.closePath();
-        ctx.fillStyle = color;
-        ctx.fill();
-        ctx.restore();
+        // Comprobar si se salió del centro (Balance perdido)
+        let distance = Math.hypot(triX - cx, triY - cy);
+        if (distance > mainCanvas.height * 0.4) {
+            fails++;
+            triX = cx; triY = cy; // Reinicia
+            sensitivity = 1; // Resetea dificultad
+        }
     }
+
+    window.addEventListener('deviceorientation', handleOrientation, true);
+
+    let oldStop = stopCurrentAnimation;
+    stopCurrentAnimation = function() {
+        window.removeEventListener('deviceorientation', handleOrientation, true);
+        clearInterval(difficultyInterval);
+        oldStop();
+    };
 
     function animate() {
         animation = requestAnimationFrame(animate);
         
-        // Fondo blanco limpio
-        mainCtx.fillStyle = "#FFFFFF";
+        // Cambiar fondo si falla
+        let currentBg = bgColors[Math.min(fails, bgColors.length - 1)];
+        mainCtx.fillStyle = currentBg;
         mainCtx.fillRect(0, 0, mainCanvas.width, mainCanvas.height);
 
-        gameTime += 0.25; // Para la velocidad del bamboleo/vibración
+        // Retorno elástico constante al centro (simula que es resbaladizo)
+        triX += (cx - triX) * 0.02;
+        triY += (cy - triY) * 0.02;
 
-        // Verificar si el dispositivo está perfectamente quieto y recto
-        let isQuiet = (gravityX === 0 && gravityY === 0);
-
-        if (isQuiet) {
-            quietTimer++; // Suma tiempo de supervivencia
-        } else {
-            quietTimer = Math.max(0, quietTimer - 2); // Si se mueve, castiga bajando el contador rápido
-        }
-
-        pieces.forEach((p, index) => {
-            // Físicas extremas si hay balanceo
-            p.vx += gravityX * 0.6;
-            p.vy += gravityY * 0.6;
-            
-            // Fricción baja para que patinen un montón
-            p.vx *= 0.93;
-            p.vy *= 0.93;
-
-            p.x += p.vx;
-            p.y += p.vy;
-
-            // --- ANIMACIÓN DE INDICACIÓN (Bamboleo/Vibración constante en el lugar) ---
-            // Solo se aplica con fuerza real cuando el celular está quieto.
-            let vibX = isQuiet ? Math.sin(gameTime * 2 + index) * 3 : 0;
-            let vibY = isQuiet ? Math.cos(gameTime * 1.5 - index) * 3 : 0;
-            let rotBamboleo = isQuiet ? Math.sin(gameTime * 0.7 + index) * 0.2 : 0;
-
-            // Límites de pantalla con rebote duro e inestable
-            if (p.x < 0 || p.x > mainCanvas.width) p.vx *= -0.9;
-            if (p.y < 0 || p.y > mainCanvas.height) p.vy *= -0.9;
-            
-            p.x = Math.max(0, Math.min(mainCanvas.width, p.x));
-            p.y = Math.max(0, Math.min(mainCanvas.height, p.y));
-
-            // Dibujar los triángulos gigantes rojos con su respectiva vibración
-            drawTriangle(mainCtx, p.x + vibX, p.y + vibY, p.size, p.angle + rotBamboleo, "#FF0000");
-        });
-
-        // --- CONDICIÓN DE LOGRO ANTICLÍMAX ---
-        // Si aguantó el tiempo requerido sin moverlo exageradamente:
-        if (quietTimer >= TIME_TO_SURVIVE && !gameOverTimeout) {
-            
-            // Generamos un destello blanco que ocupa toda la pantalla para dar la falsa expectativa
-            mainCtx.fillStyle = "rgba(255, 255, 255, 0.9)";
-            mainCtx.fillRect(0, 0, mainCanvas.width, mainCanvas.height);
-
-            gameOverTimeout = setTimeout(() => {
-                window.removeEventListener('deviceorientation', handleOrientation);
-                cancelAnimationFrame(animation);
-                
-                // Cierra el juego de golpe y vuelve a la grilla
-                const overlay = document.getElementById("overlay");
-                if (overlay) overlay.style.display = "none";
-            }, 1000); // 1 segundo de destello expectante
-        }
+        drawGradientTriangle(mainCtx, triX, triY, 70, 255, 0, 0, 1);
     }
-
     animate();
 }
 
