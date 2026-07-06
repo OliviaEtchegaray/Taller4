@@ -6,23 +6,32 @@ function startTriangulo1() {
     let cy = mainCanvas.height / 2;
     let opacity = 0.2;
 
+    // Pedir permisos obligatorios en iOS 13+
+    if (typeof DeviceMotionEvent !== 'undefined' && typeof DeviceMotionEvent.requestPermission === 'function') {
+        DeviceMotionEvent.requestPermission().catch(console.error);
+    }
+
     function handleMotion(event) {
-        let acc = event.accelerationIncludingGravity;
+        let acc = event.accelerationIncludingGravity || event.acceleration;
         if (!acc) return;
         
-        let force = Math.abs(acc.x) + Math.abs(acc.y) + Math.abs(acc.z);
-        if (force > 18) { // Sacudida fuerte detectada
-            opacity += 0.1;
-            if (opacity >= 1) {
-                // Loop de bajada
-                setTimeout(() => opacity = 0.2, 600);
-            }
+        let force = Math.abs(acc.x||0) + Math.abs(acc.y||0) + Math.abs(acc.z||0);
+        if (force > 15) { 
+            opacity += 0.15;
+            if (opacity >= 1) setTimeout(() => opacity = 0.2, 500); 
         }
     }
 
-    window.addEventListener('devicemotion', handleMotion, true);
+    // Fallback por si lo usan deslizando el dedo o ratón
+    function handleManualSwipe() {
+        opacity += 0.1;
+        if (opacity >= 1) setTimeout(() => opacity = 0.2, 500);
+    }
 
-    // Limpieza especial para sensores
+    window.addEventListener('devicemotion', handleMotion, true);
+    mainCanvas.ontouchmove = handleManualSwipe; 
+    mainCanvas.onmousemove = handleManualSwipe;
+
     let oldStop = stopCurrentAnimation;
     stopCurrentAnimation = function() {
         window.removeEventListener('devicemotion', handleMotion, true);
@@ -33,49 +42,62 @@ function startTriangulo1() {
         animation = requestAnimationFrame(animate);
         mainCtx.clearRect(0, 0, mainCanvas.width, mainCanvas.height);
         
-        // La opacidad va bajando lentamente si no sacuden
         if(opacity > 0.2) opacity -= 0.005;
 
-        drawGradientTriangle(mainCtx, cx, cy, 70, 255, 0, 0, opacity);
+   
+        drawGradientTriangle(mainCtx, cx, cy, 70, 150, 255, 150, opacity);
     }
     animate();
 }
-
 
 //  2
 
 function startTriangulo2() {
     let cx = mainCanvas.width / 2 + 20;
     let cy = mainCanvas.height / 2;
-    
-    let triX = cx;
-    let triY = cy;
-    let sensitivity = 1;
-    let fails = 0;
-    let bgColors = ["#ffffff", "#ffe6e6", "#ffcccc", "#ff9999"];
+    let triX = cx, triY = cy;
+    let sensitivity = 1, fails = 0;
+    let bgColors = ["#ffffff", "#e6ffe6", "#ccffcc", "#99ff99"]; // Fondos verdosos
 
-    // Aumenta la dificultad (sensibilidad) cada 10 segundos
-    let difficultyInterval = setInterval(() => sensitivity += 0.8, 10000);
+    // Pedir permisos en iOS 13+
+    if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+        DeviceOrientationEvent.requestPermission().catch(console.error);
+    }
+
+    let difficultyInterval = setInterval(() => sensitivity += 0.5, 10000);
 
     function handleOrientation(event) {
-        let beta = event.beta;  // Inclinación Adelante/Atrás
-        let gamma = event.gamma; // Inclinación Izquierda/Derecha
+        if (!event.beta || !event.gamma) return;
+        triX += event.gamma * sensitivity * 0.2;
+        triY += event.beta * sensitivity * 0.2;
+        checkFail();
+    }
+
+    // Fallback simulado para PC arrastrando (simulando desbalance)
+    function handleManualDrag(e) {
+        const rect = mainCanvas.getBoundingClientRect();
+        let clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        let clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        let tx = (clientX - rect.left) * (mainCanvas.width / rect.width);
+        let ty = (clientY - rect.top) * (mainCanvas.height / rect.height);
         
-        if (beta === null || gamma === null) return;
+       
+        triX += (tx - cx) * 0.05 * sensitivity;
+        triY += (ty - cy) * 0.05 * sensitivity;
+        checkFail();
+    }
 
-        triX += gamma * sensitivity * 0.15;
-        triY += beta * sensitivity * 0.15;
-
-        // Comprobar si se salió del centro (Balance perdido)
-        let distance = Math.hypot(triX - cx, triY - cy);
-        if (distance > mainCanvas.height * 0.4) {
+    function checkFail() {
+        if (Math.hypot(triX - cx, triY - cy) > mainCanvas.height * 0.4) {
             fails++;
-            triX = cx; triY = cy; // Reinicia
-            sensitivity = 1; // Resetea dificultad
+            triX = cx; triY = cy;
+            sensitivity = 1;
         }
     }
 
     window.addEventListener('deviceorientation', handleOrientation, true);
+    mainCanvas.ontouchmove = handleManualDrag;
+    mainCanvas.onmousemove = handleManualDrag;
 
     let oldStop = stopCurrentAnimation;
     stopCurrentAnimation = function() {
@@ -86,17 +108,13 @@ function startTriangulo2() {
 
     function animate() {
         animation = requestAnimationFrame(animate);
-        
-        // Cambiar fondo si falla
-        let currentBg = bgColors[Math.min(fails, bgColors.length - 1)];
-        mainCtx.fillStyle = currentBg;
+        mainCtx.fillStyle = bgColors[Math.min(fails, bgColors.length - 1)];
         mainCtx.fillRect(0, 0, mainCanvas.width, mainCanvas.height);
 
-        // Retorno elástico constante al centro (simula que es resbaladizo)
-        triX += (cx - triX) * 0.02;
+        triX += (cx - triX) * 0.02; // Retorno elástico
         triY += (cy - triY) * 0.02;
 
-        drawGradientTriangle(mainCtx, triX, triY, 70, 255, 0, 0, 1);
+        drawGradientTriangle(mainCtx, triX, triY, 70, 150, 255, 150, 1);
     }
     animate();
 }
