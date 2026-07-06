@@ -148,48 +148,47 @@ function startBlue2(){
 
 //  3
 
+
 function startBlue3(){
     let trails = [];
     let square = resetSquare();
     let isDragging = false;
+    
+    // Lógica de fondos idéntica a Blue 1
+    const bgColors = ["rgba(200, 162, 200, 1)", "rgba(255, 235, 150, 1)", "rgba(255, 200, 150, 1)"];
+    let currentBg = -1;
 
     function resetSquare() {
         return { x: mainCanvas.width / 2, y: mainCanvas.height / 2, size: 70, alpha: 1 };
     }
 
     function startDrag(e) {
+ 
         const rect = mainCanvas.getBoundingClientRect();
         let cx = e.touches ? e.touches[0].clientX : e.clientX;
         let cy = e.touches ? e.touches[0].clientY : e.clientY;
         let x = (cx - rect.left) * (mainCanvas.width / rect.width);
         let y = (cy - rect.top) * (mainCanvas.height / rect.height);
-
         if (Math.abs(x - square.x) < square.size && Math.abs(y - square.y) < square.size) {
             isDragging = true;
         }
     }
 
-    function dragMove(e) { // OK ACA ES CO LO ARRASTRA CON CELUALR 
+    function dragMove(e) {
         if (!isDragging || square.alpha <= 0) return;
         const rect = mainCanvas.getBoundingClientRect();
         let cx = e.touches ? e.touches[0].clientX : e.clientX;
         let cy = e.touches ? e.touches[0].clientY : e.clientY;
-        
         square.x = (cx - rect.left) * (mainCanvas.width / rect.width);
         square.y = (cy - rect.top) * (mainCanvas.height / rect.height);
 
-   
         trails.push({ x: square.x, y: square.y, size: square.size, alpha: square.alpha });
         square.alpha -= 0.006; 
     }
 
     function endDrag() { isDragging = false; }
 
-    mainCanvas.onmousedown = startDrag;
-    mainCanvas.onmousemove = dragMove;
-    mainCanvas.onmouseup = endDrag;
-    mainCanvas.onmouseleave = endDrag;
-
+    mainCanvas.onmousedown = startDrag; mainCanvas.onmousemove = dragMove; mainCanvas.onmouseup = endDrag; mainCanvas.onmouseleave = endDrag;
     mainCanvas.ontouchstart = (e) => { e.preventDefault(); startDrag(e); };
     mainCanvas.ontouchmove = (e) => { e.preventDefault(); dragMove(e); };
     mainCanvas.ontouchend = endDrag;
@@ -198,19 +197,23 @@ function startBlue3(){
         animation = requestAnimationFrame(animate);
         mainCtx.clearRect(0,0,mainCanvas.width,mainCanvas.height);
 
-        // Reinicio si desapareció el cuadrado y la estela
+        // Reinicio: Aparece y cambia el fondo
         if (square.alpha <= 0 && trails.length === 0) {
             square = resetSquare();
+            currentBg = (currentBg + 1) % bgColors.length; // Cambia de fondo
         }
 
-        // Estela
+        // Dibujar fondo radial si corresponde
+        if(currentBg !== -1) {
+            drawRadialBackground(mainCtx, mainCanvas, bgColors[currentBg]);
+        }
+
         trails.forEach(t => {
             drawGradientSquare(mainCtx, t.x, t.y, t.size, t.alpha);
             t.alpha -= 0.015;
         });
         trails = trails.filter(t => t.alpha > 0);
 
-    
         if (square.alpha > 0) {
             drawGradientSquare(mainCtx, square.x, square.y, square.size, Math.max(0, square.alpha));
         }
