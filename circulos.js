@@ -1,6 +1,5 @@
 
 //  1
-
 function startCirculo1() {
     let cx = mainCanvas.width / 2;
     let cy = mainCanvas.height / 2;
