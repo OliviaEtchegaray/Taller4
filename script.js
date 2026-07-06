@@ -304,25 +304,30 @@ function preview5(){
     c5.clearRect(0,0,p5.width,p5.height);
     p5Time += 0.03;
 
-    let cx = p5.width/2 + 10;
+    let cx1 = p5.width/2 - 30; // Círculo izquierdo
+    let cx2 = p5.width/2 + 30; // Círculo derecho vacío
     let cy = p5.height/2;
 
-  
-    drawGradientCircle(c5, cx, cy, 25, 200, 160, 255, 1);
+    // Contenedores Lilas
+    drawGradientCircle(c5, cx1, cy, 22, 200, 160, 255, 1);
+    drawGradientCircle(c5, cx2, cy, 22, 200, 160, 255, 1);
 
-   
-    let moveY = (p5Time % 2) * 30; // Ciclo de movimiento
+    // Bolitas estáticas (se quedan en el de la izquierda)
+    drawGradientCircle(c5, cx1 - 8, cy - 8, 7, 100, 200, 255, 1); // Celeste
+    drawGradientCircle(c5, cx1 + 8, cy - 8, 7, 150, 230, 150, 1); // Verde
+
+    // Bolitas animadas (tiran hacia la derecha)
+    let pull = Math.abs(Math.sin(p5Time * 2)) * 30; // Tirón hacia adelante
     
-    // Bolita Celeste
-    drawGradientCircle(c5, cx - 15, cy + 40 - moveY, 8, 100, 200, 255, 1 - (moveY/30));
-    // Bolita Verde
-    drawGradientCircle(c5, cx + 15, cy + 40 - moveY, 8, 150, 230, 150, 1 - (moveY/30));
+    drawGradientCircle(c5, cx1 - 8 + pull, cy + 8, 7, 100, 200, 255, 1); // Celeste
+    drawGradientCircle(c5, cx1 + 8 + pull, cy + 8, 7, 150, 230, 150, 1); // Verde
 
     requestAnimationFrame(preview5);
 }
 preview5();
 
-// PREVIEW 6 
+
+// PREVIEW 6
 const p6 = document.getElementById("preview6");
 const c6 = p6.getContext("2d");
 resizePreview(p6);
@@ -331,20 +336,19 @@ let p6Time = 0;
 function preview6(){
     resizePreview(p6);
     c6.clearRect(0,0,p6.width,p6.height);
-    p6Time += 0.04;
+    p6Time += 0.05;
 
-    let cx = p6.width/2 + 10;
-    let drop = Math.min((p6Time % 3) * 20, 30); 
-    let spread = Math.min((p6Time % 3) * 15, 20); 
+    let cy = p6.height/2 + Math.sin(p6Time) * 15; 
 
-    drawGradientCircle(c6, cx - spread, p6.height/3 + drop, 15 + spread*0.2, 200, 160, 255, 0.4 + (drop/30));
-    drawGradientCircle(c6, cx + spread, p6.height/3 + drop, 15 + spread*0.2, 200, 160, 255, 0.4 + (drop/30));
+    drawGradientCircle(c6, p6.width/2 - 15, cy, 14, 200, 160, 255, 0.8);
+    drawGradientCircle(c6, p6.width/2 + 15, cy, 14, 200, 160, 255, 0.8);
 
     requestAnimationFrame(preview6);
 }
 preview6();
 
-// PREVIEW 7 
+
+// PREVIEW 7
 const p7 = document.getElementById("preview7");
 const c7 = p7.getContext("2d");
 resizePreview(p7);
@@ -355,15 +359,17 @@ function preview7(){
     c7.clearRect(0,0,p7.width,p7.height);
     p7Time += 0.05;
 
-    let isShaking = (p7Time % 4) > 3;
+    let isShaking = (p7Time % 4) > 3; 
     let shakeX = isShaking ? (Math.random() - 0.5) * 10 : 0;
     let opacity = isShaking ? 1 : 0.3;
 
-    drawGradientTriangle(c7, p7.width/2 + 10 + shakeX, p7.height/2, 28, 255, 0, 0, opacity);
+   
+    drawGradientTriangle(c7, p7.width/2 + 10 + shakeX, p7.height/2, 28, 150, 255, 150, opacity);
     
     requestAnimationFrame(preview7);
 }
 preview7();
+
 
 // PREVIEW 8 
 const p8 = document.getElementById("preview8"); 
@@ -376,60 +382,10 @@ function preview8(){
     c8.clearRect(0, 0, p8.width, p8.height);
     p8Time += 0.05;
 
-    let wobbleX = Math.sin(p8Time * 2) * (5 + p8Time % 10);
+    let wobbleX = Math.sin(p8Time * 2) * (5 + p8Time % 10); 
     
-    drawGradientTriangle(c8, p8.width/2 + 10 + wobbleX, p8.height/2, 28, 255, 0, 0, 1);
+    drawGradientTriangle(c8, p8.width/2 + 10 + wobbleX, p8.height/2, 28, 150, 255, 150, 1);
 
     requestAnimationFrame(preview8);
 }
 preview8();
-
-
-// PREVIEW 9
-
-const p9 = document.getElementById("preview9"); 
-const c9 = p9.getContext("2d");
-resizePreview(p9);
-
-const previewTargets = [
-    { x: p9.width * 0.3,  y: p9.height * 0.4, size: 14, angle: 0 },
-    { x: p9.width * 0.7,  y: p9.height * 0.3, size: 14, angle: Math.PI * 2 / 3 },
-    { x: p9.width * 0.5,  y: p9.height * 0.7, size: 14, angle: Math.PI * 4 / 3 }
-];
-
-let previewTime = 0;
-
-function drawPreviewTriangle(ctx, x, y, size, angle, color) {
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.rotate(angle);
-    ctx.beginPath();
-    ctx.moveTo(0, -size / Math.sqrt(3));
-    ctx.lineTo(-size / 2, size / (2 * Math.sqrt(3)));
-    ctx.lineTo(size / 2, size / (2 * Math.sqrt(3)));
-    ctx.closePath();
-    ctx.fillStyle = color;
-    ctx.fill();
-    ctx.restore();
-}
-
-function preview9(){
-    resizePreview(p9);
-    c9.fillStyle = "#FFFFFF";
-    c9.fillRect(0, 0, p9.width, p9.height);
-    
-    previewTime += 0.04; 
-
-    previewTargets.forEach((t, index) => {
-        drawPreviewTriangle(c9, t.x, t.y, t.size, t.angle, "rgba(85, 85, 85, 0.4)");
-        
-        let offsetY = Math.sin(previewTime + index * 1.5) * 12; 
-        let rojoX = t.x;
-        let rojoY = t.y + 15 + offsetY; 
-        
-        drawPreviewTriangle(c9, rojoX, rojoY, t.size - 1, t.angle, "#FF0000");
-    });
-
-    requestAnimationFrame(preview9);
-}
-preview9();
