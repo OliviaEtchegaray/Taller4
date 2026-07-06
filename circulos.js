@@ -236,61 +236,59 @@ function startCirculo2() {
     animate();
 }
 // 
-//  3
-
 function startCirculo3() {
-    let cx = mainCanvas.width / 2;
-    let groundY = mainCanvas.height * 0.8; // Piso
+    let cx = mainCanvas.width / 2 + 20;
     
-    let c1 = { x: cx - 20, y: groundY, radius: 35 };
-    let c2 = { x: cx + 20, y: groundY, radius: 35 };
+   
+    let c1 = { x: cx, y: mainCanvas.height / 2, radius: 35 };
+    let c2 = { x: cx, y: mainCanvas.height / 2, radius: 35 };
 
-    let targetY = groundY;
-    let targetDistance = 40;
+    let targetY = mainCanvas.height * 0.75; 
     let targetBrightness = 0.2;
+    let brightness = 0.2;
 
-    function handleDrag(e) {
-        if (!e.touches) return;
-        
-        // esta es toda la aprte que lo mueve
-        let avgY = 0;
-        for(let i=0; i<e.touches.length; i++) {
-            avgY += e.touches[i].clientY;
+    function handleMultiTouch(e) {
+        if (e.touches.length >= 2) {
+            const rect = mainCanvas.getBoundingClientRect();
+            let y1 = (e.touches[0].clientY - rect.top);
+            let y2 = (e.touches[1].clientY - rect.top);
+            let x1 = (e.touches[0].clientX - rect.left);
+            let x2 = (e.touches[1].clientX - rect.left);
+
+            targetBrightness = Math.max(0.2, 1 - ((y1 + y2) / 2 / mainCanvas.height));
+            
+            let distX = Math.abs(x1 - x2);
+            c1.radius = 35 + Math.max(0, (200 - distX) * 0.3); 
+            c2.radius = c1.radius;
+
+            c1.x = x1; c1.y = y1;
+            c2.x = x2; c2.y = y2;
+        } else {
+            targetBrightness = 0.2;
+            c1.radius = 35; c2.radius = 35;
         }
-        avgY /= e.touches.length;
-
-        
-        if(e.touches.length >= 2) {
-            targetDistance = Math.abs(e.touches[0].clientX - e.touches[1].clientX);
-        }
-
-      
-        targetY = avgY - mainCanvas.getBoundingClientRect().top;
-        targetBrightness = Math.max(0.2, 1 - (targetY / mainCanvas.height));
     }
 
-    mainCanvas.ontouchmove = (e) => { e.preventDefault(); handleDrag(e); };
-    mainCanvas.ontouchstart = (e) => { e.preventDefault(); handleDrag(e); };
-    mainCanvas.ontouchend = () => { 
-      
-        targetY = groundY; 
-        targetDistance = 40;
-        targetBrightness = 0.2; 
-    };
+    mainCanvas.ontouchmove = (e) => { e.preventDefault(); handleMultiTouch(e); };
+    mainCanvas.ontouchstart = (e) => { e.preventDefault(); handleMultiTouch(e); };
+    mainCanvas.ontouchend = handleMultiTouch;
 
     function animate() {
         animation = requestAnimationFrame(animate);
         mainCtx.clearRect(0, 0, mainCanvas.width, mainCanvas.height);
 
-        // Físicas suaves
-        c1.y += (targetY - c1.y) * 0.1;
-        c2.y += (targetY - c2.y) * 0.1;
+        brightness += (targetBrightness - brightness) * 0.1;
 
-        c1.x += ((cx - targetDistance/2) - c1.x) * 0.1;
-        c2.x += ((cx + targetDistance/2) - c2.x) * 0.1;
+     
+        if(c1.y < targetY) {
+            c1.y += 5;
+            c2.y += 5;
+            c1.x += (cx - 40 - c1.x) * 0.1; 
+            c2.x += (cx + 40 - c2.x) * 0.1;
+        }
 
-        drawGradientCircle(mainCtx, c1.x, c1.y, c1.radius, 200, 160, 255, targetBrightness);
-        drawGradientCircle(mainCtx, c2.x, c2.y, c2.radius, 200, 160, 255, targetBrightness);
+        drawGradientCircle(mainCtx, c1.x, c1.y, c1.radius, 200, 160, 255, brightness);
+        drawGradientCircle(mainCtx, c2.x, c2.y, c2.radius, 200, 160, 255, brightness);
     }
     animate();
 }
