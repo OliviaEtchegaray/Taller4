@@ -1,158 +1,126 @@
-// 1
-function startCirculo1(){
 
-    let square={
-        x:mainCanvas.width/2,
-        y:mainCanvas.height/2,
-        size:180
+//  1
+
+function startCirculo1() {
+    let cx = mainCanvas.width / 2;
+    let cy = mainCanvas.height / 2;
+
+
+    let rejectTarget = { x: cx - 55, y: cy + 10, radius: 55 };
+    let acceptTarget = { x: cx + 55, y: cy - 45, radius: 55 }; 
+    let startPos = { x: cx + 55, y: cy + 70 };                 
+    
+    let orb = { 
+        x: startPos.x, y: startPos.y, 
+        radius: 18, 
+        r: 255, g: 235, b: 150,
+        isDragging: false,
+        state: "idle" 
     };
 
-    let circle={
-        startX:mainCanvas.width/2+170,
-        startY:mainCanvas.height/2,
-
-        x:mainCanvas.width/2+170,
-        y:mainCanvas.height/2,
-
-        r:28
-    };
-
-    let dragging=false;
-    let shake=0;
-    let rejected=false;
-
-    function insideSquare(x,y){
-
-        return(
-            x>square.x-square.size/2 &&
-            x<square.x+square.size/2 &&
-            y>square.y-square.size/2 &&
-            y<square.y+square.size/2
-        );
-
+    function getPointerPos(e) {
+        const rect = mainCanvas.getBoundingClientRect();
+        let clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        let clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        return {
+            x: (clientX - rect.left) * (mainCanvas.width / rect.width),
+            y: (clientY - rect.top) * (mainCanvas.height / rect.height)
+        };
     }
 
-    mainCanvas.onmousedown=function(e){
+    function onStart(e) {
+        if (orb.state === "accepted" || orb.state === "restarting") return;
+        let pos = getPointerPos(e);
 
-        const rect=mainCanvas.getBoundingClientRect();
-
-        const mx=(e.clientX-rect.left)*(mainCanvas.width/rect.width);
-        const my=(e.clientY-rect.top)*(mainCanvas.height/rect.height);
-
-        const d=Math.hypot(mx-circle.x,my-circle.y);
-
-        if(d<circle.r){
-
-            dragging=true;
-
+        if (Math.hypot(pos.x - orb.x, pos.y - orb.y) < orb.radius * 3) {
+            orb.isDragging = true;
+            orb.state = "idle";
         }
-
     }
 
-    mainCanvas.onmouseup=function(){
-
-        dragging=false;
-
+    function onMove(e) {
+        if (!orb.isDragging) return;
+        let pos = getPointerPos(e);
+        orb.x = pos.x;
+        orb.y = pos.y;
     }
 
-    mainCanvas.onmouseleave=function(){
+    function onEnd() {
+        if (!orb.isDragging) return;
+        orb.isDragging = false;
 
-        dragging=false;
+        let distToReject = Math.hypot(orb.x - rejectTarget.x, orb.y - rejectTarget.y);
+        let distToAccept = Math.hypot(orb.x - acceptTarget.x, orb.y - acceptTarget.y);
 
-    }
 
-    mainCanvas.onmousemove=function(e){
-
-        if(!dragging) return;
-
-        const rect=mainCanvas.getBoundingClientRect();
-
-        const mx=(e.clientX-rect.left)*(mainCanvas.width/rect.width);
-        const my=(e.clientY-rect.top)*(mainCanvas.height/rect.height);
-
-        circle.x=mx;
-        circle.y=my;
-
-        if(insideSquare(circle.x,circle.y)){
-
-            dragging=false;
-            rejected=true;
-            shake=12;
-
+        if (distToReject < rejectTarget.radius) {
+            orb.state = "bouncing";
+        } else if (distToAccept < acceptTarget.radius) {
+            orb.state = "accepted";
+        } else {
+            orb.state = "bouncing"; 
         }
-
     }
 
-    function animate(){
+    mainCanvas.onmousedown = onStart; mainCanvas.onmousemove = onMove; mainCanvas.onmouseup = onEnd;
+    mainCanvas.ontouchstart = (e) => { e.preventDefault(); onStart(e); };
+    mainCanvas.ontouchmove = (e) => { e.preventDefault(); onMove(e); };
+    mainCanvas.ontouchend = onEnd;
 
-        animation=requestAnimationFrame(animate);
+    function animate() {
+        animation = requestAnimationFrame(animate);
+        mainCtx.clearRect(0, 0, mainCanvas.width, mainCanvas.height);
 
-        mainCtx.clearRect(0,0,mainCanvas.width,mainCanvas.height);
 
-        if(rejected){
+        drawGradientCircle(mainCtx, rejectTarget.x, rejectTarget.y, rejectTarget.radius, 200, 160, 255, 1);
+        mainCtx.beginPath(); mainCtx.arc(rejectTarget.x, rejectTarget.y, rejectTarget.radius, 0, Math.PI*2); 
+        mainCtx.strokeStyle = "#333"; mainCtx.lineWidth = 1; mainCtx.stroke();
 
-            circle.x+=(circle.startX-circle.x)*0.08;
-            circle.y+=(circle.startY-circle.y)*0.08;
 
-            if(
-                Math.abs(circle.x-circle.startX)<1 &&
-                Math.abs(circle.y-circle.startY)<1
-            ){
+        mainCtx.beginPath(); mainCtx.arc(acceptTarget.x, acceptTarget.y, acceptTarget.radius, 0, Math.PI*2); 
+        mainCtx.strokeStyle = "#333"; mainCtx.lineWidth = 1; mainCtx.stroke();
 
-                rejected=false;
 
+        if (orb.state === "bouncing") {
+    
+            orb.x += (startPos.x - orb.x) * 0.15;
+            orb.y += (startPos.y - orb.y) * 0.15;
+            if (Math.hypot(orb.x - startPos.x, orb.y - startPos.y) < 1) orb.state = "idle";
+            
+        } else if (orb.state === "accepted") {
+
+            orb.x += (acceptTarget.x - orb.x) * 0.1;
+            orb.y += (acceptTarget.y - orb.y) * 0.1;
+ 
+            orb.radius += (acceptTarget.radius - orb.radius) * 0.05;
+
+
+            orb.r += (200 - orb.r) * 0.05;
+            orb.g += (160 - orb.g) * 0.05;
+            orb.b += (255 - orb.b) * 0.05;
+
+   
+            if (Math.abs(orb.radius - acceptTarget.radius) < 0.5) {
+                orb.state = "restarting"; 
+                setTimeout(() => {
+         
+                    orb.x = startPos.x; 
+                    orb.y = startPos.y;
+                    orb.radius = 18;
+                    orb.r = 255; orb.g = 235; orb.b = 150;
+                    orb.state = "idle";
+                }, 2000); 
             }
-
         }
-
-        let sx=square.x;
-
-        if(shake>0){
-
-            sx+=(Math.random()-0.5)*shake;
-            shake*=0.82;
-
-        }
-
-        // cuadrado
-
-        mainCtx.strokeStyle="#0900FF";
-        mainCtx.lineWidth=7;
-
-        mainCtx.strokeRect(
-
-            sx-square.size/2,
-            square.y-square.size/2,
-
-            square.size,
-            square.size
-
-        );
-
-        // círculo
-
-        mainCtx.beginPath();
-
-        mainCtx.fillStyle="#FFD400";
-
-        mainCtx.arc(
-
-            circle.x,
-            circle.y,
-
-            circle.r,
-
-            0,
-            Math.PI*2
-
-        );
-
-        mainCtx.fill();
-
+)
+        drawGradientCircle(mainCtx, orb.x, orb.y, orb.radius, Math.round(orb.r), Math.round(orb.g), Math.round(orb.b), 1);
+        
+  
+        mainCtx.beginPath(); mainCtx.arc(orb.x, orb.y, orb.radius, 0, Math.PI*2); 
+        mainCtx.strokeStyle = "rgba(0,0,0,0.2)"; mainCtx.lineWidth = 1; mainCtx.stroke();
     }
-
+    
     animate();
-
 }
 
 
