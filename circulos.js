@@ -1,20 +1,22 @@
-
-//  1
+// 1
+// ==========================================
+// CÍRCULO 1: ENCONTRAR TU ESPACIO E IDENTIDAD
+// ==========================================
 function startCirculo1() {
     let cx = mainCanvas.width / 2;
     let cy = mainCanvas.height / 2;
 
-
-    let rejectTarget = { x: cx - 55, y: cy + 10, radius: 55 };
-    let acceptTarget = { x: cx + 55, y: cy - 45, radius: 55 }; 
-    let startPos = { x: cx + 55, y: cy + 70 };                 
+    // Posiciones relativas basadas en la imagen de referencia
+    let rejectTarget = { x: cx - 55, y: cy + 10, radius: 55 }; // Izquierda
+    let acceptTarget = { x: cx + 55, y: cy - 45, radius: 55 }; // Derecha Arriba
+    let startPos = { x: cx + 55, y: cy + 70 };                 // Derecha Abajo
     
     let orb = { 
         x: startPos.x, y: startPos.y, 
         radius: 18, 
-        r: 255, g: 235, b: 150,
+        r: 255, g: 235, b: 150, // Comienza Amarillo
         isDragging: false,
-        state: "idle" 
+        state: "idle" // Estados: idle, bouncing, accepted, restarting
     };
 
     function getPointerPos(e) {
@@ -30,7 +32,7 @@ function startCirculo1() {
     function onStart(e) {
         if (orb.state === "accepted" || orb.state === "restarting") return;
         let pos = getPointerPos(e);
-
+        // Área de toque más grande para facilitar en celulares
         if (Math.hypot(pos.x - orb.x, pos.y - orb.y) < orb.radius * 3) {
             orb.isDragging = true;
             orb.state = "idle";
@@ -51,13 +53,13 @@ function startCirculo1() {
         let distToReject = Math.hypot(orb.x - rejectTarget.x, orb.y - rejectTarget.y);
         let distToAccept = Math.hypot(orb.x - acceptTarget.x, orb.y - acceptTarget.y);
 
-
+        // Lógica de colisión al soltar
         if (distToReject < rejectTarget.radius) {
-            orb.state = "bouncing";
+            orb.state = "bouncing"; // Choca y vuelve
         } else if (distToAccept < acceptTarget.radius) {
-            orb.state = "accepted";
+            orb.state = "accepted"; // Entra y se transforma
         } else {
-            orb.state = "bouncing"; 
+            orb.state = "bouncing"; // Si la suelta en cualquier otro lado, también vuelve a su lugar
         }
     }
 
@@ -70,39 +72,40 @@ function startCirculo1() {
         animation = requestAnimationFrame(animate);
         mainCtx.clearRect(0, 0, mainCanvas.width, mainCanvas.height);
 
-
+        // 1. Dibujar Contenedor Izquierdo (Rechaza) - Lleno y Violeta
         drawGradientCircle(mainCtx, rejectTarget.x, rejectTarget.y, rejectTarget.radius, 200, 160, 255, 1);
         mainCtx.beginPath(); mainCtx.arc(rejectTarget.x, rejectTarget.y, rejectTarget.radius, 0, Math.PI*2); 
         mainCtx.strokeStyle = "#333"; mainCtx.lineWidth = 1; mainCtx.stroke();
 
-
+        // 2. Dibujar Contenedor Derecho (Acepta) - Vacío
         mainCtx.beginPath(); mainCtx.arc(acceptTarget.x, acceptTarget.y, acceptTarget.radius, 0, Math.PI*2); 
         mainCtx.strokeStyle = "#333"; mainCtx.lineWidth = 1; mainCtx.stroke();
 
-
+        // 3. Lógicas de Animación de la bolita
         if (orb.state === "bouncing") {
-    
+            // Efecto elástico hacia la posición inicial
             orb.x += (startPos.x - orb.x) * 0.15;
             orb.y += (startPos.y - orb.y) * 0.15;
             if (Math.hypot(orb.x - startPos.x, orb.y - startPos.y) < 1) orb.state = "idle";
             
         } else if (orb.state === "accepted") {
-
+            // Se centra en el círculo vacío
             orb.x += (acceptTarget.x - orb.x) * 0.1;
             orb.y += (acceptTarget.y - orb.y) * 0.1;
- 
+            
+            // Crece hasta llenar el espacio
             orb.radius += (acceptTarget.radius - orb.radius) * 0.05;
 
-
+            // Interpolación de color: de Amarillo a Violeta (200, 160, 255)
             orb.r += (200 - orb.r) * 0.05;
             orb.g += (160 - orb.g) * 0.05;
             orb.b += (255 - orb.b) * 0.05;
 
-   
+            // Cuando la animación casi termina, preparamos el reinicio
             if (Math.abs(orb.radius - acceptTarget.radius) < 0.5) {
                 orb.state = "restarting"; 
                 setTimeout(() => {
-         
+                    // Reinicia el sistema luego de 2 segundos para poder volver a jugar
                     orb.x = startPos.x; 
                     orb.y = startPos.y;
                     orb.radius = 18;
@@ -111,10 +114,11 @@ function startCirculo1() {
                 }, 2000); 
             }
         }
-)
+
+        // 4. Dibujar la bolita dinámica (usando colores redondeados para evitar errores de CSS)
         drawGradientCircle(mainCtx, orb.x, orb.y, orb.radius, Math.round(orb.r), Math.round(orb.g), Math.round(orb.b), 1);
         
-  
+        // Bordecito de la bolita para mantener la estética
         mainCtx.beginPath(); mainCtx.arc(orb.x, orb.y, orb.radius, 0, Math.PI*2); 
         mainCtx.strokeStyle = "rgba(0,0,0,0.2)"; mainCtx.lineWidth = 1; mainCtx.stroke();
     }
@@ -125,6 +129,10 @@ function startCirculo1() {
 
 // 2
 
+
+// ==========================================
+// CÍRCULO 2: ORDENAR (ALINEADOS HORIZONTAL Y LADO A LADO)
+// ==========================================
 function startCirculo2() {
     let containers = [];
     let orbs = [];
@@ -205,14 +213,14 @@ function startCirculo2() {
         containers.forEach((c, index) => {
             let inThis = orbs.filter(o => o.currentContainer === index);
             
-      
+            // Animación de tirón (indicador visual) en el primer contenedor
             let isHinting = (index === 0 && !isDragging && inThis.length > 2);
 
             inThis.forEach((o, i) => {
                 let targetX = c.x;
                 let targetY = c.y;
 
-       
+                // Acomodarlos lado a lado según cuántos haya
                 if(inThis.length === 1) { targetX = c.x; targetY = c.y; }
                 else if(inThis.length === 2) { targetX = c.x + (i===0 ? -10 : 10); targetY = c.y; }
                 else if(inThis.length === 3) { targetX = c.x + (i===0 ? -10 : i===1 ? 10 : 0); targetY = c.y + (i===2 ? 10 : -10); }
