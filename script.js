@@ -260,35 +260,30 @@ function preview3(){
 preview3();
 
 
-// PREVIEW 4
-
 const p4 = document.getElementById("preview4");
 const c4 = p4.getContext("2d");
 resizePreview(p4);
+let p4Time = 0;
 
-let t4 = 0;
-
-function preview4(){
+function preview4() {
     resizePreview(p4);
     c4.clearRect(0,0,p4.width,p4.height);
+    p4Time += 0.05;
 
-    const cx = p4.width/2;
-    const cy = p4.height/2;
+    let cx = p4.width / 2;
+    let cy = p4.height / 2;
 
-  
-    c4.strokeStyle="#0900FF";
-    c4.lineWidth=5;
-    c4.strokeRect(cx-32,cy-32,64,64);
+ 
+    drawGradientCircle(c4, cx - 35, cy + 5, 28, 200, 160, 255, 1);
+    c4.beginPath(); c4.arc(cx - 35, cy + 5, 28, 0, Math.PI*2); c4.strokeStyle="#333"; c4.stroke();
 
-  
-    let offset = 52 - Math.abs(Math.sin(t4))*18;
 
-    c4.beginPath();
-    c4.fillStyle="#FFD400";
-    c4.arc(cx+offset,cy,13,0,Math.PI*2);
-    c4.fill();
+    c4.beginPath(); c4.arc(cx + 35, cy - 25, 28, 0, Math.PI*2); c4.strokeStyle="#333"; c4.stroke();
 
-    t4 += 0.05;
+
+    let moveY = Math.sin(p4Time * 2.5) * 6;
+    drawGradientCircle(c4, cx + 35, cy + 30 + moveY, 10, 255, 235, 150, 1);
+
     requestAnimationFrame(preview4);
 }
 preview4();
