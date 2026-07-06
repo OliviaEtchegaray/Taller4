@@ -156,7 +156,6 @@ function startCirculo1(){
 }
 
 
-
 // 2
 
 function startCirculo2() {
@@ -169,7 +168,7 @@ function startCirculo2() {
         containers = [];
         orbs = [];
         
-      
+        // Alineación Horizontal con separación calculada
         let startX = mainCanvas.width * 0.15; 
         let spacingX = (mainCanvas.width * 0.7) / 4; 
         let cy = mainCanvas.height / 2;
@@ -189,7 +188,7 @@ function startCirculo2() {
 
     initGame();
 
-   
+    // ... (Tu misma lógica de onStart, onMove, onEnd) ...
     function getPointerPos(e) { /* Igual que antes */ 
         const rect = mainCanvas.getBoundingClientRect();
         let cx = e.touches ? e.touches[0].clientX : e.clientX;
@@ -239,20 +238,20 @@ function startCirculo2() {
         containers.forEach((c, index) => {
             let inThis = orbs.filter(o => o.currentContainer === index);
             
-           r
+      
             let isHinting = (index === 0 && !isDragging && inThis.length > 2);
 
             inThis.forEach((o, i) => {
                 let targetX = c.x;
                 let targetY = c.y;
 
-              
+       
                 if(inThis.length === 1) { targetX = c.x; targetY = c.y; }
                 else if(inThis.length === 2) { targetX = c.x + (i===0 ? -10 : 10); targetY = c.y; }
                 else if(inThis.length === 3) { targetX = c.x + (i===0 ? -10 : i===1 ? 10 : 0); targetY = c.y + (i===2 ? 10 : -10); }
                 else if(inThis.length >= 4) { targetX = c.x + (i%2===0 ? -10 : 10); targetY = c.y + (i<2 ? -10 : 10); }
 
-             
+                // Aplicar el tirón al objetivo para dar pistas al jugador
                 if (isHinting && i >= 2) { targetX += Math.abs(Math.sin(time)) * 20; } 
 
                 if (isDragging !== o) {
@@ -260,6 +259,7 @@ function startCirculo2() {
                     o.y += (targetY - o.y) * 0.2;
                 }
 
+                // Dibujar con los colores correctos (Celeste y Verde)
                 if (o.type === 'C') drawGradientCircle(mainCtx, o.x, o.y, o.radius, 100, 200, 255, 1);
                 else drawGradientCircle(mainCtx, o.x, o.y, o.radius, 150, 230, 150, 1);
             });
@@ -267,7 +267,6 @@ function startCirculo2() {
     }
     animate();
 }
-
 // 
 //  3
 
