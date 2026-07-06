@@ -163,96 +163,65 @@ function startCirculo2() {
     let containers = [];
     let orbs = [];
     let isDragging = null;
+    let time = 0;
 
     function initGame() {
         containers = [];
         orbs = [];
-    
-        let cx = mainCanvas.width / 2 + 20; 
+        
+      
+        let startX = mainCanvas.width * 0.15; 
+        let spacingX = (mainCanvas.width * 0.7) / 4; 
         let cy = mainCanvas.height / 2;
 
-  
         for (let i = 0; i < 5; i++) {
-            containers.push({
-                x: cx,
-                y: cy + (i - 2) * 75,
-                radius: 35
-            });
+            containers.push({ x: startX + (i * spacingX), y: cy, radius: 28 });
         }
 
-        const initialSetup = [
-            ['C', 'C', 'V', 'V'], [], [], ['C', 'C', 'V'], ['C', 'V', 'V']
-        ];
+        const initialSetup = [ ['C', 'C', 'V', 'V'], [], [], ['C', 'C', 'V'], ['C', 'V', 'V'] ];
 
         initialSetup.forEach((contents, index) => {
-            let container = containers[index];
             contents.forEach(type => {
-                orbs.push({
-                    type: type,
-                    x: container.x + (Math.random() - 0.5) * 30,
-                    y: container.y + (Math.random() - 0.5) * 30,
-                    currentContainer: index,
-                    radius: 10
-                });
+                orbs.push({ type: type, x: containers[index].x, y: containers[index].y, currentContainer: index, radius: 8 });
             });
         });
     }
 
     initGame();
 
-    function getPointerPos(e) {
+   
+    function getPointerPos(e) { /* Igual que antes */ 
         const rect = mainCanvas.getBoundingClientRect();
-        let clientX = e.touches ? e.touches[0].clientX : e.clientX;
-        let clientY = e.touches ? e.touches[0].clientY : e.clientY;
-        return {
-            x: (clientX - rect.left) * (mainCanvas.width / rect.width),
-            y: (clientY - rect.top) * (mainCanvas.height / rect.height)
-        };
+        let cx = e.touches ? e.touches[0].clientX : e.clientX;
+        let cy = e.touches ? e.touches[0].clientY : e.clientY;
+        return { x: (cx - rect.left) * (mainCanvas.width / rect.width), y: (cy - rect.top) * (mainCanvas.height / rect.height) };
     }
 
     function onStart(e) {
         let pos = getPointerPos(e);
         for (let i = orbs.length - 1; i >= 0; i--) {
             let o = orbs[i];
-            if (Math.hypot(pos.x - o.x, pos.y - o.y) < o.radius * 3) {
-                isDragging = o;
-                break;
-            }
+            if (Math.hypot(pos.x - o.x, pos.y - o.y) < o.radius * 3) { isDragging = o; break; }
         }
     }
 
-    function onMove(e) {
-        if (!isDragging) return;
-        let pos = getPointerPos(e);
-        isDragging.x = pos.x;
-        isDragging.y = pos.y;
-    }
+    function onMove(e) { if (isDragging) { let pos = getPointerPos(e); isDragging.x = pos.x; isDragging.y = pos.y; } }
 
     function onEnd() {
         if (!isDragging) return;
-        let closest = -1;
-        let minDist = Infinity;
+        let closest = -1; let minDist = Infinity;
         containers.forEach((c, index) => {
             let dist = Math.hypot(isDragging.x - c.x, isDragging.y - c.y);
-            if (dist < c.radius + 15 && dist < minDist) {
-                minDist = dist;
-                closest = index;
-            }
+            if (dist < c.radius + 15 && dist < minDist) { minDist = dist; closest = index; }
         });
-
         if (closest !== -1) isDragging.currentContainer = closest;
         isDragging = null;
         
-      
         let allValid = true;
         for (let i = 0; i < 5; i++) {
-            let inThis = orbs.filter(o => o.currentContainer === i);
-            if (inThis.length !== 2) { 
-                allValid = false; 
-                break; 
-            }
+            if (orbs.filter(o => o.currentContainer === i).length !== 2) { allValid = false; break; }
         }
-        if (allValid) setTimeout(initGame, 1000);
+        if (allValid) setTimeout(initGame, 1000); 
     }
 
     mainCanvas.onmousedown = onStart; mainCanvas.onmousemove = onMove; mainCanvas.onmouseup = onEnd;
@@ -263,78 +232,98 @@ function startCirculo2() {
     function animate() {
         animation = requestAnimationFrame(animate);
         mainCtx.clearRect(0, 0, mainCanvas.width, mainCanvas.height);
+        time += 0.05;
 
         containers.forEach(c => drawGradientCircle(mainCtx, c.x, c.y, c.radius, 200, 160, 255, 1));
 
-        orbs.forEach(o => {
-            if (isDragging !== o) {
-                let tc = containers[o.currentContainer];
-                o.x += (tc.x - o.x) * 0.1;
-                o.y += (tc.y - o.y) * 0.1;
-            }
-            if (o.type === 'C') drawGradientCircle(mainCtx, o.x, o.y, o.radius, 100, 200, 255, 1);
-            else drawGradientCircle(mainCtx, o.x, o.y, o.radius, 150, 230, 150, 1);
+        containers.forEach((c, index) => {
+            let inThis = orbs.filter(o => o.currentContainer === index);
+            
+           r
+            let isHinting = (index === 0 && !isDragging && inThis.length > 2);
+
+            inThis.forEach((o, i) => {
+                let targetX = c.x;
+                let targetY = c.y;
+
+              
+                if(inThis.length === 1) { targetX = c.x; targetY = c.y; }
+                else if(inThis.length === 2) { targetX = c.x + (i===0 ? -10 : 10); targetY = c.y; }
+                else if(inThis.length === 3) { targetX = c.x + (i===0 ? -10 : i===1 ? 10 : 0); targetY = c.y + (i===2 ? 10 : -10); }
+                else if(inThis.length >= 4) { targetX = c.x + (i%2===0 ? -10 : 10); targetY = c.y + (i<2 ? -10 : 10); }
+
+             
+                if (isHinting && i >= 2) { targetX += Math.abs(Math.sin(time)) * 20; } 
+
+                if (isDragging !== o) {
+                    o.x += (targetX - o.x) * 0.2;
+                    o.y += (targetY - o.y) * 0.2;
+                }
+
+                if (o.type === 'C') drawGradientCircle(mainCtx, o.x, o.y, o.radius, 100, 200, 255, 1);
+                else drawGradientCircle(mainCtx, o.x, o.y, o.radius, 150, 230, 150, 1);
+            });
         });
     }
     animate();
 }
 
-
-// 3
+// 
+//  3
 
 function startCirculo3() {
-    let cx = mainCanvas.width / 2 + 20;
+    let cx = mainCanvas.width / 2;
+    let groundY = mainCanvas.height * 0.8; // Piso
     
-   
-    let c1 = { x: cx, y: mainCanvas.height / 2, radius: 35 };
-    let c2 = { x: cx, y: mainCanvas.height / 2, radius: 35 };
+    let c1 = { x: cx - 20, y: groundY, radius: 35 };
+    let c2 = { x: cx + 20, y: groundY, radius: 35 };
 
-    let targetY = mainCanvas.height * 0.75; 
+    let targetY = groundY;
+    let targetDistance = 40;
     let targetBrightness = 0.2;
-    let brightness = 0.2;
 
-    function handleMultiTouch(e) {
-        if (e.touches.length >= 2) {
-            const rect = mainCanvas.getBoundingClientRect();
-            let y1 = (e.touches[0].clientY - rect.top);
-            let y2 = (e.touches[1].clientY - rect.top);
-            let x1 = (e.touches[0].clientX - rect.left);
-            let x2 = (e.touches[1].clientX - rect.left);
-
-            targetBrightness = Math.max(0.2, 1 - ((y1 + y2) / 2 / mainCanvas.height));
-            
-            let distX = Math.abs(x1 - x2);
-            c1.radius = 35 + Math.max(0, (200 - distX) * 0.3); 
-            c2.radius = c1.radius;
-
-            c1.x = x1; c1.y = y1;
-            c2.x = x2; c2.y = y2;
-        } else {
-            targetBrightness = 0.2;
-            c1.radius = 35; c2.radius = 35;
+    function handleDrag(e) {
+        if (!e.touches) return;
+        
+        // esta es toda la aprte que lo mueve
+        let avgY = 0;
+        for(let i=0; i<e.touches.length; i++) {
+            avgY += e.touches[i].clientY;
         }
+        avgY /= e.touches.length;
+
+        
+        if(e.touches.length >= 2) {
+            targetDistance = Math.abs(e.touches[0].clientX - e.touches[1].clientX);
+        }
+
+      
+        targetY = avgY - mainCanvas.getBoundingClientRect().top;
+        targetBrightness = Math.max(0.2, 1 - (targetY / mainCanvas.height));
     }
 
-    mainCanvas.ontouchmove = (e) => { e.preventDefault(); handleMultiTouch(e); };
-    mainCanvas.ontouchstart = (e) => { e.preventDefault(); handleMultiTouch(e); };
-    mainCanvas.ontouchend = handleMultiTouch;
+    mainCanvas.ontouchmove = (e) => { e.preventDefault(); handleDrag(e); };
+    mainCanvas.ontouchstart = (e) => { e.preventDefault(); handleDrag(e); };
+    mainCanvas.ontouchend = () => { 
+      
+        targetY = groundY; 
+        targetDistance = 40;
+        targetBrightness = 0.2; 
+    };
 
     function animate() {
         animation = requestAnimationFrame(animate);
         mainCtx.clearRect(0, 0, mainCanvas.width, mainCanvas.height);
 
-        brightness += (targetBrightness - brightness) * 0.1;
+        // Físicas suaves
+        c1.y += (targetY - c1.y) * 0.1;
+        c2.y += (targetY - c2.y) * 0.1;
 
-     
-        if(c1.y < targetY) {
-            c1.y += 5;
-            c2.y += 5;
-            c1.x += (cx - 40 - c1.x) * 0.1; 
-            c2.x += (cx + 40 - c2.x) * 0.1;
-        }
+        c1.x += ((cx - targetDistance/2) - c1.x) * 0.1;
+        c2.x += ((cx + targetDistance/2) - c2.x) * 0.1;
 
-        drawGradientCircle(mainCtx, c1.x, c1.y, c1.radius, 200, 160, 255, brightness);
-        drawGradientCircle(mainCtx, c2.x, c2.y, c2.radius, 200, 160, 255, brightness);
+        drawGradientCircle(mainCtx, c1.x, c1.y, c1.radius, 200, 160, 255, targetBrightness);
+        drawGradientCircle(mainCtx, c2.x, c2.y, c2.radius, 200, 160, 255, targetBrightness);
     }
     animate();
 }
