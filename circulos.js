@@ -1,131 +1,191 @@
-// 1
 // ==========================================
-// CÍRCULO 1: ENCONTRAR TU ESPACIO E IDENTIDAD
+// CÍRCULO: MULTITOUCH (SOSTENER Y ARRASTRAR)
 // ==========================================
-function startCirculo1() {
+function startCirculoMultitouch() {
     let cx = mainCanvas.width / 2;
     let cy = mainCanvas.height / 2;
 
-    // Posiciones relativas basadas en la imagen de referencia
-    let rejectTarget = { x: cx - 55, y: cy + 10, radius: 55 }; // Izquierda
-    let acceptTarget = { x: cx + 55, y: cy - 45, radius: 55 }; // Derecha Arriba
-    let startPos = { x: cx + 55, y: cy + 70 };                 // Derecha Abajo
-    
-    let orb = { 
-        x: startPos.x, y: startPos.y, 
-        radius: 18, 
-        r: 255, g: 235, b: 150, // Comienza Amarillo
-        isDragging: false,
-        state: "idle" // Estados: idle, bouncing, accepted, restarting
-    };
+    // Colores base
+    let colors = [
+        { name: 'violet', r: 200, g: 162, b: 255 },
+        { name: 'green', r: 150, g: 230, b: 150 }
+    ];
 
-    function getPointerPos(e) {
+    // Asignamos los bordes de manera aleatoria al iniciar
+    let shuffledColors = Math.random() > 0.5 ? [colors[0], colors[1]] : [colors[1], colors[0]];
+
+    // Contenedores (Círculos vacíos con borde de color)
+    let containers = [
+        { x: cx - 65, y: cy - 40, radius: 55, color: shuffledColors[0], isPressed: false, touchId: null },
+        { x: cx + 65, y: cy - 40, radius: 55, color: shuffledColors[1], isPressed: false, touchId: null }
+    ];
+
+    // Bolitas (Orbes)
+    let orbs = [
+        { id: 1, startX: cx - 45, startY: cy + 90, x: cx - 45, y: cy + 90, radius: 18, color: colors[0], isDragging: false, touchId: null, state: 'idle' },
+        { id: 2, startX: cx + 45, startY: cy + 90, x: cx + 45, y: cy + 90, radius: 18, color: colors[1], isDragging: false, touchId: null, state: 'idle' }
+    ];
+
+    // Función auxiliar para obtener posición relativa en el Canvas
+    function getCanvasPos(touch) {
         const rect = mainCanvas.getBoundingClientRect();
-        let clientX = e.touches ? e.touches[0].clientX : e.clientX;
-        let clientY = e.touches ? e.touches[0].clientY : e.clientY;
         return {
-            x: (clientX - rect.left) * (mainCanvas.width / rect.width),
-            y: (clientY - rect.top) * (mainCanvas.height / rect.height)
+            x: (touch.clientX - rect.left) * (mainCanvas.width / rect.width),
+            y: (touch.clientY - rect.top) * (mainCanvas.height / rect.height)
         };
     }
 
-    function onStart(e) {
-        if (orb.state === "accepted" || orb.state === "restarting") return;
-        let pos = getPointerPos(e);
-        // Área de toque más grande para facilitar en celulares
-        if (Math.hypot(pos.x - orb.x, pos.y - orb.y) < orb.radius * 3) {
-            orb.isDragging = true;
-            orb.state = "idle";
+    function onTouchStart(e) {
+        // Iteramos sobre todos los dedos que acaban de tocar la pantalla
+        for (let i = 0; i < e.changedTouches.length; i++) {
+            let touch = e.changedTouches[i];
+            let pos = getCanvasPos(touch);
+
+            // 1. Verificamos si tocamos un contenedor (para sostenerlo)
+            containers.forEach(c => {
+                if (Math.hypot(pos.x - c.x, pos.y - c.y) < c.radius) {
+                    c.isPressed = true;
+                    c.touchId = touch.identifier; // Guardamos qué dedo lo está apretando
+                }
+            });
+
+            // 2. Verificamos si tocamos una bolita (para arrastrarla)
+            orbs.forEach(o => {
+                if (Math.hypot(pos.x - o.x, pos.y - o.y) < o.radius * 3 && o.state !== 'accepted') {
+                    o.isDragging = true;
+                    o.touchId = touch.identifier;
+                    o.state = 'idle';
+                }
+            });
         }
     }
 
-    function onMove(e) {
-        if (!orb.isDragging) return;
-        let pos = getPointerPos(e);
-        orb.x = pos.x;
-        orb.y = pos.y;
-    }
+    function onTouchMove(e) {
+        // Actualizamos posiciones según el dedo que se mueve
+        for (let i = 0; i < e.changedTouches.length; i++) {
+            let touch = e.changedTouches[i];
+            let pos = getCanvasPos(touch);
 
-    function onEnd() {
-        if (!orb.isDragging) return;
-        orb.isDragging = false;
+            // Mover bolita si este dedo la está arrastrando
+            orbs.forEach(o => {
+                if (o.isDragging && o.touchId === touch.identifier) {
+                    o.x = pos.x;
+                    o.y = pos.y;
+                }
+            });
 
-        let distToReject = Math.hypot(orb.x - rejectTarget.x, orb.y - rejectTarget.y);
-        let distToAccept = Math.hypot(orb.x - acceptTarget.x, orb.y - acceptTarget.y);
-
-        // Lógica de colisión al soltar
-        if (distToReject < rejectTarget.radius) {
-            orb.state = "bouncing"; // Choca y vuelve
-        } else if (distToAccept < acceptTarget.radius) {
-            orb.state = "accepted"; // Entra y se transforma
-        } else {
-            orb.state = "bouncing"; // Si la suelta en cualquier otro lado, también vuelve a su lugar
+            // Opcional: Si el dedo se resbala fuera del contenedor, lo "des-presionamos"
+            containers.forEach(c => {
+                if (c.touchId === touch.identifier) {
+                    if (Math.hypot(pos.x - c.x, pos.y - c.y) > c.radius * 1.5) {
+                        c.isPressed = false;
+                        c.touchId = null;
+                    } else {
+                        c.isPressed = true;
+                    }
+                }
+            });
         }
     }
 
-    mainCanvas.onmousedown = onStart; mainCanvas.onmousemove = onMove; mainCanvas.onmouseup = onEnd;
-    mainCanvas.ontouchstart = (e) => { e.preventDefault(); onStart(e); };
-    mainCanvas.ontouchmove = (e) => { e.preventDefault(); onMove(e); };
-    mainCanvas.ontouchend = onEnd;
+    function onTouchEnd(e) {
+        for (let i = 0; i < e.changedTouches.length; i++) {
+            let touch = e.changedTouches[i];
+
+            // 1. Si soltamos un contenedor
+            containers.forEach(c => {
+                if (c.touchId === touch.identifier) {
+                    c.isPressed = false;
+                    c.touchId = null;
+                }
+            });
+
+            // 2. Si soltamos una bolita
+            orbs.forEach(o => {
+                if (o.isDragging && o.touchId === touch.identifier) {
+                    o.isDragging = false;
+                    o.touchId = null;
+
+                    // Verificamos si cayó dentro de algún contenedor
+                    let droppedInContainer = null;
+                    containers.forEach(c => {
+                        if (Math.hypot(o.x - c.x, o.y - c.y) < c.radius) {
+                            droppedInContainer = c;
+                        }
+                    });
+
+                    if (droppedInContainer) {
+                        // LA MAGIA: Para que sea exitoso, el contenedor DEBE estar presionado Y los colores deben coincidir
+                        if (droppedInContainer.isPressed && droppedInContainer.color.name === o.color.name) {
+                            o.state = 'accepted';
+                            o.targetC = droppedInContainer;
+                        } else {
+                            // Si no coincide o si no estaba manteniendo presionado el contenedor, rebota
+                            o.state = 'bouncing';
+                        }
+                    } else {
+                        o.state = 'bouncing'; // La soltó en la nada
+                    }
+                }
+            });
+        }
+    }
+
+    // Asignamos los eventos de Touch (fundamental prevenir el default para que la pantalla no haga scroll)
+    mainCanvas.ontouchstart = (e) => { e.preventDefault(); onTouchStart(e); };
+    mainCanvas.ontouchmove = (e) => { e.preventDefault(); onTouchMove(e); };
+    mainCanvas.ontouchend = (e) => { e.preventDefault(); onTouchEnd(e); };
+    mainCanvas.ontouchcancel = (e) => { e.preventDefault(); onTouchEnd(e); };
+
+    // Limpiamos los eventos de mouse porque esta lógica es estrictamente multitouch
+    mainCanvas.onmousedown = null; mainCanvas.onmousemove = null; mainCanvas.onmouseup = null;
 
     function animate() {
         animation = requestAnimationFrame(animate);
         mainCtx.clearRect(0, 0, mainCanvas.width, mainCanvas.height);
 
-        // 1. Dibujar Contenedor Izquierdo (Rechaza) - Lleno y Violeta
-        drawGradientCircle(mainCtx, rejectTarget.x, rejectTarget.y, rejectTarget.radius, 200, 160, 255, 1);
-        mainCtx.beginPath(); mainCtx.arc(rejectTarget.x, rejectTarget.y, rejectTarget.radius, 0, Math.PI*2); 
-        mainCtx.strokeStyle = "#333"; mainCtx.lineWidth = 1; mainCtx.stroke();
-
-        // 2. Dibujar Contenedor Derecho (Acepta) - Vacío
-        mainCtx.beginPath(); mainCtx.arc(acceptTarget.x, acceptTarget.y, acceptTarget.radius, 0, Math.PI*2); 
-        mainCtx.strokeStyle = "#333"; mainCtx.lineWidth = 1; mainCtx.stroke();
-
-        // 3. Lógicas de Animación de la bolita
-        if (orb.state === "bouncing") {
-            // Efecto elástico hacia la posición inicial
-            orb.x += (startPos.x - orb.x) * 0.15;
-            orb.y += (startPos.y - orb.y) * 0.15;
-            if (Math.hypot(orb.x - startPos.x, orb.y - startPos.y) < 1) orb.state = "idle";
+        // Dibujamos los contenedores
+        containers.forEach(c => {
+            mainCtx.beginPath();
+            mainCtx.arc(c.x, c.y, c.radius, 0, Math.PI * 2);
             
-        } else if (orb.state === "accepted") {
-            // Se centra en el círculo vacío
-            orb.x += (acceptTarget.x - orb.x) * 0.1;
-            orb.y += (acceptTarget.y - orb.y) * 0.1;
+            let colorStr = `rgba(${c.color.r}, ${c.color.g}, ${c.color.b}, 1)`;
             
-            // Crece hasta llenar el espacio
-            orb.radius += (acceptTarget.radius - orb.radius) * 0.05;
-
-            // Interpolación de color: de Amarillo a Violeta (200, 160, 255)
-            orb.r += (200 - orb.r) * 0.05;
-            orb.g += (160 - orb.g) * 0.05;
-            orb.b += (255 - orb.b) * 0.05;
-
-            // Cuando la animación casi termina, preparamos el reinicio
-            if (Math.abs(orb.radius - acceptTarget.radius) < 0.5) {
-                orb.state = "restarting"; 
-                setTimeout(() => {
-                    // Reinicia el sistema luego de 2 segundos para poder volver a jugar
-                    orb.x = startPos.x; 
-                    orb.y = startPos.y;
-                    orb.radius = 18;
-                    orb.r = 255; orb.g = 235; orb.b = 150;
-                    orb.state = "idle";
-                }, 2000); 
+            // Feedback visual: Si lo están apretando, se pinta con baja opacidad
+            if (c.isPressed) {
+                mainCtx.fillStyle = `rgba(${c.color.r}, ${c.color.g}, ${c.color.b}, 0.2)`;
+                mainCtx.fill();
+                mainCtx.lineWidth = 4;
+            } else {
+                mainCtx.lineWidth = 2;
             }
-        }
+            
+            mainCtx.strokeStyle = colorStr;
+            mainCtx.stroke();
+        });
 
-        // 4. Dibujar la bolita dinámica (usando colores redondeados para evitar errores de CSS)
-        drawGradientCircle(mainCtx, orb.x, orb.y, orb.radius, Math.round(orb.r), Math.round(orb.g), Math.round(orb.b), 1);
-        
-        // Bordecito de la bolita para mantener la estética
-        mainCtx.beginPath(); mainCtx.arc(orb.x, orb.y, orb.radius, 0, Math.PI*2); 
-        mainCtx.strokeStyle = "rgba(0,0,0,0.2)"; mainCtx.lineWidth = 1; mainCtx.stroke();
+        // Dibujamos y animamos las bolitas
+        orbs.forEach(o => {
+            if (o.state === 'bouncing') {
+                o.x += (o.startX - o.x) * 0.15;
+                o.y += (o.startY - o.y) * 0.15;
+                if (Math.hypot(o.x - o.startX, o.y - o.startY) < 1) o.state = 'idle';
+                
+            } else if (o.state === 'accepted') {
+                o.x += (o.targetC.x - o.x) * 0.15;
+                o.y += (o.targetC.y - o.y) * 0.15;
+                
+                // Crece un poco al encajar
+                o.radius += (o.targetC.radius * 0.6 - o.radius) * 0.1; 
+            }
+
+            // Usamos tu función para dibujar la bolita
+            drawGradientCircle(mainCtx, o.x, o.y, o.radius, o.color.r, o.color.g, o.color.b, 1);
+        });
     }
     
     animate();
 }
-
 
 // 2
 
